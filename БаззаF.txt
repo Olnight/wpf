@@ -1,0 +1,72 @@
+CREATE TABLE "Client" (
+"ClientId" serial PRIMARY KEY,
+"FirstName" character varying(20) NOT NULL,
+"LastName" character varying(20) NOT NULL,
+"Patronymic" character varying(20),
+"Phone" character varying(11) NOT NULL UNIQUE
+);
+
+
+CREATE TABLE "Worker"(
+"WorkerId" serial PRIMARY KEY,
+"FirstName" character varying(20) NOT NULL,
+"LastName" character varying(20) NOT NULL,	
+"Patronymic" character varying(20) NOT NULL,
+"Post" character varying(50) NOT NULL,
+"Login" character varying(20),
+"Password" text,
+"Phone" character varying(11) NOT NULL UNIQUE
+);
+
+CREATE TABLE "Service"(
+"ServiceId" serial PRIMARY KEY,
+"Name" character varying(50),
+"Description" character varying(200),
+"Duration" integer,	
+"Price" numeric(10,2)
+);
+
+CREATE TABLE "Product"(
+"ProductId" serial PRIMARY KEY,
+"Name" character varying(50),
+"Description" character varying(250),
+"Category" character varying(50),
+"Price" numeric(10,2)
+);
+
+CREATE TABLE "Auto"(
+"AutoId" serial PRIMARY KEY,
+"Model" character varying(30),
+"Brand" character varying(30),
+"Ñonstruction" character varying(50),
+"Description" character varying(500),
+"Motor" character varying(20),
+"Gearbox" character varying(50),
+"Drive" character varying(50),
+"Color" character varying(20),
+"Price" numeric(10,2)
+);
+
+CREATE TABLE "Finance"(
+"FinanceId" serial PRIMARY KEY,
+"Date" date NOT NULL,
+"Amount" numeric(10,2),
+"ClientId" INTEGER,
+"WorkerId" INTEGER,
+"AutoId" INTEGER,
+"ServiceId" INTEGER,
+"ProductId" INTEGER,
+FOREIGN KEY ("ClientId") REFERENCES "Client" ("ClientId") ON DELETE SET NULL,
+FOREIGN KEY ("WorkerId") REFERENCES "Worker" ("WorkerId") ON DELETE SET NULL,
+FOREIGN KEY ("AutoId") REFERENCES "Auto" ("AutoId") ON DELETE SET NULL,
+FOREIGN KEY ("ServiceId") REFERENCES "Service" ("ServiceId") ON DELETE SET NULL,
+FOREIGN KEY ("ProductId") REFERENCES "Product" ("ProductId") ON DELETE SET NULL
+);
+
+CREATE TABLE "AutoProduct"(
+"AutoProductId" serial PRIMARY KEY,
+"AutoId" INTEGER,
+"ProductId" INTEGER,
+FOREIGN KEY ("AutoId") REFERENCES "Auto" ("AutoId") ON DELETE CASCADE,
+FOREIGN KEY ("ProductId") REFERENCES "Product" ("ProductId") ON DELETE CASCADE
+);
