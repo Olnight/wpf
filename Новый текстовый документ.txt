@@ -1,3 +1,34 @@
+
+<?php
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Обработка данных здесь
+
+        // Подключите файл с вашими классами
+        require 'your_classes_file.php';
+
+        // Создайте объект и вызовите метод actionCreate
+        $dsn = "mysql:host=localhost;dbname=akhfvmxt_m4;charset=UTF8";
+        $pdo = new PDO($dsn, 'akhfvmx', 'Tp83F6');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $title = $_POST['title'];
+        // Получите остальные значения из $_POST
+
+        // Создание экземпляра класса в зависимости от типа продукта (CD или книга)
+        if (!empty($playLength)) {
+            $product = new CDProduct($title, $firstName, $mainName, $price, $playLength);
+        } elseif (!empty($numPages)) {
+            $product = new BookProduct($title, $firstName, $mainName, $price, $numPages);
+        }
+
+        // Вызов метода для добавления в базу данных
+        if (isset($product)) {
+            $product->actionCreate($pdo);
+            echo "Запись успешно добавлена в базу данных.";
+        }
+    }
+    ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
