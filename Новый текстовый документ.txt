@@ -1,3 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавление записи в базу данных</title>
+</head>
+<body>
+    <h1>Добавление записи в базу данных</h1>
+
+    <!-- Форма для добавления записи -->
+    <form method="post" action="">
+        <label for="title">Название продукта:</label>
+        <input type="text" name="title" id="title" required>
+        <br>
+
+        <label for="firstName">Имя производителя:</label>
+        <input type="text" name="firstName" id="firstName">
+        <br>
+
+        <label for "mainName">Фамилия производителя:</label>
+        <input type="text" name="mainName" id="mainName">
+        <br>
+
+        <label for="price">Цена:</label>
+        <input type="number" name="price" id="price" step="0.01" required>
+        <br>
+
+        <label for="playLength">Длительность воспроизведения (только для CD):</label>
+        <input type="number" name="playLength" id="playLength">
+        <br>
+
+        <label for="numPages">Количество страниц (только для книги):</label>
+        <input type="number" name="numPages" id="numPages">
+        <br>
+
+        <input type="submit" value="Добавить запись">
+    </form>
+
+    <?php
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Получение и обработка данных происходит здесь
+        // Остальной PHP код, как описано выше
+    }
+    ?>
+</body>
+</html>
+
+
+
+
+
+
 <!-- Форма для добавления записи -->
 <form method="post" action="">
     <label for="title">Название продукта:</label>
