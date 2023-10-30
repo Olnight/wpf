@@ -1,3 +1,84 @@
+
+ALTER TABLE Lot
+    ADD FULLTEXT(name,description)
+$category_list = category_list($con);
+$nav = include_template('categoriya.php',['categories' => $category_list]);
+const OFFSET_ONE = 1;
+const LIMIT = 3;
+if(!empty($_GET)){
+    $searchs = trim($_GET['search']);
+    $search_str = isset($_GET['search']) ? $_GET['search'] : "";
+    $count_lot = search_lot_count($searchs, $con);
+    
+    $count_pages = ceil($count_lot/LIMIT);
+    $curr_page =  isset($_GET['page']) ? $_GET['page'] : 1;
+    
+    $offset = ($curr_page - OFFSET_ONE) * LIMIT;
+    $search_lot = search_lot($searchs, $con, LIMIT, $offset);
+}
+
+
+$main = include_template('search.php', [
+    'nav' => $nav,
+    'lots' => $search_lot,
+    'search_str' => $search_str,
+    'count_page' => $count_pages,
+    'curr_page' => $curr_page
+]);
+
+print($layout = include_template('layout.php', [
+    'title' => 'Поиск',
+    'nav' => $nav,
+    'main' => $main
+]));
+
+function search_lot_count(string $search_str, mysqli $con): int{
+    $sql = "SELECT COUNT(Lot.id) AS count_lot FROM Lot WHERE date_end >= CURRENT_DATE AND MATCH(Lot.name,Lot.description) AGAINST(?);";
+    $stmt = mysqli_prepare($con, $sql);
+   
+    mysqli_stmt_bind_param($stmt, 's', $search_str);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $result = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    return (int)$result[0]['count_lot'];
+}
+
+function search_lot(string $search_str, mysqli $con, int $limit, int $offset): array|bool{
+    $sql = "SELECT Lot.id,  Lot.name as name_lot, picture, start_price, date_end, Category.name FROM Lot
+    INNER JOIN Category ON Lot.category_id = Category.id
+    WHERE date_end >= CURRENT_DATE AND MATCH(Lot.name,Lot.description)  AGAINST(?) 
+    ORDER BY date_reg DESC
+    LIMIT ?
+    OFFSET ?;";
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, 'sii', $search_str, $limit, $offset);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+     if($res){
+        return mysqli_fetch_all($res, MYSQLI_ASSOC);
+    }else{
+        return $res;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <main>
 <?= $nav?>
     <form class="form form--add-lot container <?php if (!isset($errors)): ?>form--invalid<?php endif; ?> "
