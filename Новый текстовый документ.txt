@@ -1,124 +1,75 @@
 <?php
-namespace App;
-
-class Truncater
-{
-    const OPTIONS = [
-        'separator' => '...',
-        'length' => 200,
-    ];
-    
-    private $options = [];
-
-    public function __construct($options = [])
-    {
-        $this->options = array_merge(self::OPTIONS, $options);
-    }
-    public function truncate($string, $callOptions = [])
-    {
-        $newOptions = array_merge($this->options, $callOptions);
-
-        $substr = substr($string, 0, $newOptions['length']);
-
-        if (strlen($substr) < strlen($string)) {
-            return "{$substr}{$newOptions['separator']}";
-        } else {
-            return $substr;
+namespace App\Comparator;
+function processString($str) {
+    $stack = new \Ds\Stack();
+    for ($i = 0; $i < strlen($str); $i++) {
+        if ($str[$i] != '#') {
+            $stack->push($str[$i]);
+        } elseif (!$stack->isEmpty()) {
+            $stack->pop();
         }
     }
+    return implode('', $stack->toArray());
 }
 
-
-class TruncaterTest extends TestCase
-{
-    public function testTruncate()
-    {
-        $truncater = new Truncater();
-        $actual = $truncater->truncate('one two');
-        $this->assertEquals('one two', $actual);
-        $actual = $truncater->truncate('one two', ['length' => 6]);
-        $this->assertEquals('one tw...', $actual);
-        $actual = $truncater->truncate('one two', ['separator' => '.']);
-        $this->assertEquals('one two', $actual);
-        $actual = $truncater->truncate('one two', ['length' => '3']);
-        $this->assertEquals('one...', $actual);
-
-        $truncater = new Truncater(['length' => 3]);
-        $actual = $truncater->truncate('one two');
-        $this->assertEquals('one...', $actual);
-        $actual = $truncater->truncate('one two', ['separator' => '!']);
-        $this->assertEquals('one!', $actual);
-        $actual = $truncater->truncate('one two');
-        $this->assertEquals('one...', $actual);
-
-        $actual = $truncater->truncate('one two', ['length' => 7]);
-        $this->assertEquals('one two', $actual);
-    }
+function compare($seq1, $seq2) {
+    return processString($seq1) === processString($seq2);
 }
-
-
-function toStd(array $array): \stdClass{
-    $std = new \stdClass();
-    foreach ($array as $key => $value) {
-        $std->$key = $value;
-    }
-    return $std;
-}
-
-
-
-class ConverterTest extends TestCase
-{
-    public function testConverter()
-    {
-        $data = [
-            'key' => 'value',
-            'key2' => 'value2',
-        ];
-        $config = toStd($data);
-        $this->assertEquals((object) $data, $config);
-
-        $data2 = [
-            'keysdd' => 'vasdfalue',
-            'kasdfey2' => 'asdvalue2',
-        ];
-        $config = toStd($data2);
-        $this->assertEquals((object) $data2, $config);
-    }
-}
-
-
 <?php
-
-namespace App;
-
-class Course
-{
-    private $name;
-
-    public function __construct($name)
-    {
-        $this->name = $name;
-    }
-
-    public function getName()
-    {
-        return $this->name;
-    }
-}
-
-
-
+// установка
+// composer require --dev phpunit/phpunit
+// composer update
+// запуск
+// php ./vendor/bin/phpunit --testdox tests
 namespace App\Tests;
 
-use App\Course;
 use PHPUnit\Framework\TestCase;
+use App\Url;
 
-class CourseTest extends TestCase{
-    public function testCourse(){
-        $name="name";
-        $course = new Course($name);
-        $this->assertEquals($name, $course->getName());
+class UrlTest extends TestCase
+{
+    private string $yandexUrl;
+    private string $googleUrl;
+
+    protected function setUp(): void
+    {
+        $this->yandexUrl = 'http://yandex.ru?key=value&key2=value2';
+        $this->googleUrl = 'https://google.com:80?a=b&c=d&lala=value';
     }
 
+    public function testYandex()
+    {
+        $url = new Url($this->yandexUrl);
 
+        $this->assertEquals('http', $url->getScheme());
+        $this->assertEquals('yandex.ru', $url->getHostName());
+        $params = [
+            'key' => 'value',
+            'key2' => 'value2'
+        ];
+        $this->assertEquals($params, $url->getQueryParams());
+        $this->assertEquals('value', $url->getQueryParam('key'));
+        $this->assertEquals('value2', $url->getQueryParam('key2', 'lala'));
+        $this->assertEquals('ehu', $url->getQueryParam('new', 'ehu'));
+        $this->assertTrue($url->equals(new Url($this->yandexUrl)));
+        $this->assertFalse($url->equals(new Url($this->googleUrl)));
+    }
+
+    public function testGoogle()
+    {
+        $url = new Url($this->googleUrl);
+
+        $this->assertEquals('https', $url->getScheme());
+        $this->assertEquals('google.com', $url->getHostName());
+        $params = [
+            'a' => 'b',
+            'c' => 'd',
+            'lala' => 'value'
+        ];
+        $this->assertEquals($params, $url->getQueryParams());
+        $this->assertNull($url->getQueryParam('key'));
+        $this->assertTrue($url->equals(new Url($this->googleUrl)));
+        $this->assertFalse($url->equals(new Url('https://google.com')));
+        $this->assertFalse($url->equals(new Url(str_replace('80', '443', $this->googleUrl))));
+    }
+}
