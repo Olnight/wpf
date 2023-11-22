@@ -1,218 +1,124 @@
 <?php
-// установка
-// composer require --dev phpunit/phpunit ^10
-// composer update
-// запуск
-// php ./vendor/bin/phpunit --testdox tests
+namespace App;
+
+class Truncater
+{
+    const OPTIONS = [
+        'separator' => '...',
+        'length' => 200,
+    ];
+    
+    private $options = [];
+
+    public function __construct($options = [])
+    {
+        $this->options = array_merge(self::OPTIONS, $options);
+    }
+    public function truncate($string, $callOptions = [])
+    {
+        $newOptions = array_merge($this->options, $callOptions);
+
+        $substr = substr($string, 0, $newOptions['length']);
+
+        if (strlen($substr) < strlen($string)) {
+            return "{$substr}{$newOptions['separator']}";
+        } else {
+            return $substr;
+        }
+    }
+}
+
+
+class TruncaterTest extends TestCase
+{
+    public function testTruncate()
+    {
+        $truncater = new Truncater();
+        $actual = $truncater->truncate('one two');
+        $this->assertEquals('one two', $actual);
+        $actual = $truncater->truncate('one two', ['length' => 6]);
+        $this->assertEquals('one tw...', $actual);
+        $actual = $truncater->truncate('one two', ['separator' => '.']);
+        $this->assertEquals('one two', $actual);
+        $actual = $truncater->truncate('one two', ['length' => '3']);
+        $this->assertEquals('one...', $actual);
+
+        $truncater = new Truncater(['length' => 3]);
+        $actual = $truncater->truncate('one two');
+        $this->assertEquals('one...', $actual);
+        $actual = $truncater->truncate('one two', ['separator' => '!']);
+        $this->assertEquals('one!', $actual);
+        $actual = $truncater->truncate('one two');
+        $this->assertEquals('one...', $actual);
+
+        $actual = $truncater->truncate('one two', ['length' => 7]);
+        $this->assertEquals('one two', $actual);
+    }
+}
+
+
+function toStd(array $array): \stdClass{
+    $std = new \stdClass();
+    foreach ($array as $key => $value) {
+        $std->$key = $value;
+    }
+    return $std;
+}
+
+
+
+class ConverterTest extends TestCase
+{
+    public function testConverter()
+    {
+        $data = [
+            'key' => 'value',
+            'key2' => 'value2',
+        ];
+        $config = toStd($data);
+        $this->assertEquals((object) $data, $config);
+
+        $data2 = [
+            'keysdd' => 'vasdfalue',
+            'kasdfey2' => 'asdvalue2',
+        ];
+        $config = toStd($data2);
+        $this->assertEquals((object) $data2, $config);
+    }
+}
+
+
+<?php
+
+namespace App;
+
+class Course
+{
+    private $name;
+
+    public function __construct($name)
+    {
+        $this->name = $name;
+    }
+
+    public function getName()
+    {
+        return $this->name;
+    }
+}
+
+
+
 namespace App\Tests;
 
-use App\PasswordValidator;
+use App\Course;
 use PHPUnit\Framework\TestCase;
 
-class PasswordValidatorTest extends TestCase
-{
-    public function testValidateWithDefaultOptions()
-    {
-        $validator = new PasswordValidator();
-        $errors1 = $validator->validate('qwertyui');
-        $this->assertEmpty($errors1);
-
-        $errors2 = $validator->validate('qwerty');
-        $this->assertEquals([
-            'minLength' => 'too small'
-        ], $errors2);
-
-        $errors3 = $validator->validate('another-password');
-        $this->assertEmpty($errors3);
-    }
-
-    public function testValidateWithOptions()
-    {
-        $validator = new PasswordValidator([
-            'containNumbers' => true
-        ]);
-        $errors1 = $validator->validate('qwertya3sdf');
-        $this->assertEmpty($errors1);
-
-        $errors2 = $validator->validate('qwerty');
-        $this->assertEquals([
-            'minLength' => 'too small',
-            'containNumbers' => 'should contain at least one number'
-        ], $errors2);
-
-        $errors3 = $validator->validate('q23ty');
-        $this->assertEquals([
-            'minLength' => 'too small',
-        ], $errors3);
-    }
-
-    public function testValidateWithIncorrectOptions()
-    {
-        $validator = new PasswordValidator([
-            'containNumberz' => null
-        ]);
-        $errors1 = $validator->validate('qwertya3sdf');
-        $this->assertEmpty($errors1);
-
-        $errors2 = $validator->validate('qwerty');
-        $this->assertEquals([
-            'minLength' => 'too small',
-        ], $errors2);
-    }
-}
-
-
-
-
-
-class RandomTest extends TestCase
-{
-    public function testGetNext()
-    {
-        $seq = new Random(100);
-        $result1 = $seq->getNext();
-        $result2 = $seq->getNext();
-
-        $this->assertNotEquals($result1, $result2);
-
-        $seq2 = new Random(100);
-        $result21 = $seq2->getNext();
-        $result22 = $seq2->getNext();
-
-        $this->assertEquals($result1, $result21);
-        $this->assertEquals($result2, $result22);
-    }
-
-    public function testReset()
-    {
-        $seq = new Random(100);
-        $result1 = $seq->getNext();
-        $result2 = $seq->getNext();
-        $result3 = $seq->getNext();
-
-        $this->assertNotEquals($result1, $result2);
-
-        $seq->reset();
-
-        $result21 = $seq->getNext();
-        $result22 = $seq->getNext();
-
-        $this->assertEquals($result1, $result21);
-        $this->assertEquals($result2, $result22);
+class CourseTest extends TestCase{
+    public function testCourse(){
+        $name="name";
+        $course = new Course($name);
+        $this->assertEquals($name, $course->getName());
     }
 
 
-
-<?php
-namespace App;
-
-class Square
-{
-    private $side;
-
-    public function __construct($side)
-    {
-        $this->side = $side;
-    }
-
-    public function getSide()
-    {
-        return $this->side;
-    }
-}
-
-<?php
-
-namespace App;
-use App\Square;
-
-class SquaresGenerator
-{
-    public static function generate(int $side, int $amount = 5): array
-    {
-        $array = [];
-        for ($i = 0; $i < $amount; $i++) {  
-            $array[] = new Square($side);
-        }
-        return $array;
-    }
-}
-
-
-
-
-
-<?php
-
-namespace App;
-
-class Random
-{
-    public const RAND_MAX = 32767;
-    public const RAND2 = 13456;
-    public const  RAND3 = 17813;
-    private $seed;
-    public $next;
-
-    public function __construct($seed)
-    {
-        $this->seed = $seed;
-        $this->next = $seed;
-    }
-
-    public function getSeed()
-    {
-        return $this->seed;
-    }
-
-    public function getNext()
-    {
-        $this->next = $this->next * self::RAND_MAX + self::RAND2;
-        return ($this->next / self::RAND3) % (self::RAND_MAX + 1);
-    }
-
-    public function reset()
-    {
-        $this->next = $this->seed;
-    }
-}
-
-
-
-
-
-<?php
-
-namespace App;
-
-class PasswordValidator
-{
-    private $array;
-
-    public function __construct($newDefaultOptions = [], $defaultOptions = [
-            'containNumbers' => false,
-            'minLength' => 8
-        ])
-    {
-        $this->array = array_replace($defaultOptions, $newDefaultOptions);
-    }
-
-    public function validate($password)
-    {
-        $errors = [];
-        if (strlen($password) < $this->array['minLength']) {
-            $errors['minLength'] = 'too small';
-        }
-        if ($this->array['containNumbers']) {
-            if (!$this->hasNumber($password)) {
-                $errors['containNumbers'] = 'should contain at least one number';
-            }
-        }
-
-        return $errors;
-    }
-    private function hasNumber($subject)
-    {
-        return strpbrk($subject, '1234567890');
-    }
-}
