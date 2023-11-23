@@ -1,4 +1,33 @@
 <?php
+namespace App;
+use Illuminate\Support\Collection;
+
+class DeckOfCards
+{
+    private Collection $cards;
+
+    public function __construct(array $cardValues)
+    {
+        $this->initializeDeck($cardValues);
+        
+    }
+    
+    public function initializeDeck(array $cardValues)
+    {
+        $this->cards = collect($cardValues)
+            ->flatMap(function ($value): array {
+                return array_fill(0, 4, $value); 
+            });
+    }
+
+    public function getShuffled(): array
+    {
+        return $this->cards->shuffle()->all();
+    }
+}
+
+
+<?php
 namespace App\Normalizer;
 use Illuminate\Support\Collection;
 
