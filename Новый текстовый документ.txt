@@ -71,3 +71,131 @@ function getQuestions(string $text): string
 
     return implode("\n", $questions);
 }
+
+
+<?php
+namespace App\Dates;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+use Illuminate\Support\Collection;
+
+function buildRange(array $data, string $begin, string $end): array {
+    $period = CarbonPeriod::create($begin, $end);
+
+    $data = collect($data)->keyBy(function ($item) {
+        return Carbon::createFromFormat('d.m.Y', $item['date'])->format('Y-m-d');
+    });
+
+    $result = [];
+    foreach ($period as $currentDate) {
+        $dateStr = $currentDate->format('Y-m-d');
+        $result[] = [
+            'value' => $data->has($dateStr) ? $data[$dateStr]['value'] : 0,
+            'date' => $currentDate->format('d.m.Y')
+        ];
+    }
+
+    return $result;
+}
+
+
+
+
+<?php
+namespace App;
+
+use App\ObjInterface;
+use ArrayAccess;
+
+class Obj implements ObjInterface, ArrayAccess
+{
+    private array $object;
+
+    public function __construct($array)
+    {
+        foreach ($array as $key => $value) {
+            !is_array($value) ? $this->object[$key] = $value : $this->object[$key] = new Obj($value);
+        }
+    }
+    public function __get($key)
+    {
+        return $this->object[$key] ?? null;
+    }
+
+    public function __set($key, $value)
+    {
+        $this->object[$key] = $value;
+    }
+
+    public function offsetExists(mixed $key): bool
+    {
+        return isset($this->object[$key]);
+    }
+
+    public function offsetGet(mixed $key): mixed
+    {
+        return isset($this->object[$key]) ? $this->object[$key] : null;
+    }
+
+    public function offsetSet(mixed $key, mixed $value): void
+    {
+        $this->object[$key] = $value;
+    }
+
+    public function offsetUnset(mixed $key): void
+    {
+        unset($this->object[$key]);
+    }
+}
+
+<?php
+
+namespace App;
+
+interface ObjInterface
+{
+    public function __get($key);
+    public function __set($key, $value);
+}
+
+
+<?php
+namespace App\LinkedList;
+
+use App\Node;
+function reverse($node)
+{
+    $reversedList = new Node($node->getValue());
+    $current = $node -> getNext();
+
+    while ($current) {
+        $reversedList = new Node($current->getValue(), $reversedList);
+        $current = $current->getNext();
+    }
+    return $reversedList;
+}
+
+
+<?php
+
+namespace App;
+
+class Node
+{
+    public function __construct($value, Node $node = null)
+    {
+        $this->next = $node;
+        $this->value = $value;
+    }
+
+    public function getNext()
+    {
+        return $this->next;
+    }
+
+    public function getValue()
+    {
+        return $this->value;
+    }
+}
+
