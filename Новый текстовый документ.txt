@@ -1,228 +1,73 @@
 <?php
-namespace App\Comparator;
-function processString($str) {
-    $stack = new \Ds\Stack();
-    for ($i = 0; $i < strlen($str); $i++) {
-        if ($str[$i] != '#') {
-            $stack->push($str[$i]);
-        } elseif (!$stack->isEmpty()) {
-            $stack->pop();
-        }
-    }
-    return implode('', $stack->toArray());
-}
-
-function compare($seq1, $seq2) {
-    return processString($seq1) === processString($seq2);
-}
-<?php
-// установка
-// composer require --dev phpunit/phpunit
-// composer update
-// запуск
-// php ./vendor/bin/phpunit --testdox tests
-namespace App\Tests;
-
-use PHPUnit\Framework\TestCase;
-use App\Url;
-
-class UrlTest extends TestCase
-{
-    private string $yandexUrl;
-    private string $googleUrl;
-
-    protected function setUp(): void
-    {
-        $this->yandexUrl = 'http://yandex.ru?key=value&key2=value2';
-        $this->googleUrl = 'https://google.com:80?a=b&c=d&lala=value';
-    }
-
-    public function testYandex()
-    {
-        $url = new Url($this->yandexUrl);
-
-        $this->assertEquals('http', $url->getScheme());
-        $this->assertEquals('yandex.ru', $url->getHostName());
-        $params = [
-            'key' => 'value',
-            'key2' => 'value2'
-        ];
-        $this->assertEquals($params, $url->getQueryParams());
-        $this->assertEquals('value', $url->getQueryParam('key'));
-        $this->assertEquals('value2', $url->getQueryParam('key2', 'lala'));
-        $this->assertEquals('ehu', $url->getQueryParam('new', 'ehu'));
-        $this->assertTrue($url->equals(new Url($this->yandexUrl)));
-        $this->assertFalse($url->equals(new Url($this->googleUrl)));
-    }
-
-    public function testGoogle()
-    {
-        $url = new Url($this->googleUrl);
-
-        $this->assertEquals('https', $url->getScheme());
-        $this->assertEquals('google.com', $url->getHostName());
-        $params = [
-            'a' => 'b',
-            'c' => 'd',
-            'lala' => 'value'
-        ];
-        $this->assertEquals($params, $url->getQueryParams());
-        $this->assertNull($url->getQueryParam('key'));
-        $this->assertTrue($url->equals(new Url($this->googleUrl)));
-        $this->assertFalse($url->equals(new Url('https://google.com')));
-        $this->assertFalse($url->equals(new Url(str_replace('80', '443', $this->googleUrl))));
-    }
-}
-
-
-
-
-<?php
-namespace App;
+namespace App\Normalizer;
 use Illuminate\Support\Collection;
 
-class DeckOfCards
-{
-    private Collection $cards;
-
-    public function __construct(array $cardValues)
-    {
-        $this->cards = collect($cardValues)
-            ->flatMap(function ($value): array {
-                return array_fill(0, 4, $value); 
-            });
-    }
-
-    public function getShuffled(): array
-    {
-        return $this->cards->shuffle()->all();
-    }
+function normalize(array $raw): array {
+    return collect($raw)
+        ->map(function ($item) {
+            return [
+                'name' => strtolower(trim($item['name'])),
+                'country' => strtolower(trim($item['country']))
+            ];
+        })
+        ->groupBy('country')
+        ->map(function ($item) {
+            return $item->pluck('name')
+                        ->unique()
+                        ->sort()
+                        ->values();
+        })
+        ->sortKeys()
+        ->toArray();
 }
-use App\DeckOfCards;
-use PHPUnit\Framework\TestCase;
-
-class DeckOfCardsTest extends TestCase
-{
-    public function testGetShuffled1()
-    {
-        $expected = [2, 2, 2, 2, 3, 3, 3, 3];
-        $deck = new DeckOfCards([2, 3]);
-        $result1 = $deck->getShuffled();
-        $result2 = $deck->getShuffled();
-        $this->assertNotEquals($result1, $result2);
-
-        sort($result1);
-        $this->assertEquals($expected, $result1);
-
-        sort($result2);
-        $this->assertEquals($expected, $result2);
-    }
-
-    public function testGetShuffled2()
-    {
-        $expected = [7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9];
-        $deck = new DeckOfCards([8, 9, 7]);
-        $result1 = $deck->getShuffled();
-        $result2 = $deck->getShuffled();
-        $this->assertNotEquals($result1, $result2);
-
-        sort($result1);
-        $this->assertEquals($expected, $result1);
-
-        sort($result2);
-        $this->assertEquals($expected, $result2);
-    }
-}
-
-
-
-
 
 
 <?php
 namespace App;
+use Carbon\Carbon;
 
-class Url
+class Booking
 {
-    private $url;
-    private $components;
-    private $queryParams;
+    private $bookedDates = [];
 
-    public function __construct($url)
+    public function book(string $startDate, string $endDate): bool
     {
-        $this->url = $url;
-        $this->components = parse_url($url);
-        parse_str($this->components['query'] ?? '', $this->queryParams);
-    }
+        $start =  new Carbon($startDate);
+        $end = new Carbon($endDate);
 
-    public function getScheme()
-    {
-        return $this->components['scheme'] ?? null;
-    }
+        if ($start >= $end) {
+            return false;
+        }
+        
+        // доступна ли бронь
+        foreach ($this->bookedDates as $dates) {
+            $isIntersected = $start < $dates['end'] && $end > $dates['start'];
+            if ($isIntersected) {
+                return false;
+            }
+        }
 
-    public function getHostName()
-    {
-        return $this->components['host'] ?? null;
-    }
-
-    public function getQueryParams()
-    {
-        return $this->queryParams;
-    }
-
-    public function getQueryParam($key, $default = null)
-    {
-        return $this->queryParams[$key] ?? $default;
-    }
-
-    public function equals(Url $otherUrl)
-    {
-        return $this->url === $otherUrl->url;
+        $this->bookedDates[] = ['start' => $start, 'end' => $end];
+        return true;
     }
 }
-class UrlTest extends TestCase
+
+
+<?php
+namespace App\Normalizer;
+use function Symfony\Component\String\s;
+
+function getQuestions(string $text): string
 {
-    private string $yandexUrl;
-    private string $googleUrl;
+    $lines = explode("\n", $text);
+    $questions = [];
 
-    protected function setUp(): void
-    {
-        $this->yandexUrl = 'http://yandex.ru?key=value&key2=value2';
-        $this->googleUrl = 'https://google.com:80?a=b&c=d&lala=value';
+    foreach ($lines as $line) {
+        $trimmedLine = s($line)->trim();
+        if ($trimmedLine->endsWith('?')) {
+            $questions[] = $trimmedLine->toString();
+        }
     }
 
-    public function testYandex()
-    {
-        $url = new Url($this->yandexUrl);
-
-        $this->assertEquals('http', $url->getScheme());
-        $this->assertEquals('yandex.ru', $url->getHostName());
-        $params = [
-            'key' => 'value',
-            'key2' => 'value2'
-        ];
-        $this->assertEquals($params, $url->getQueryParams());
-        $this->assertEquals('value', $url->getQueryParam('key'));
-        $this->assertEquals('value2', $url->getQueryParam('key2', 'lala'));
-        $this->assertEquals('ehu', $url->getQueryParam('new', 'ehu'));
-        $this->assertTrue($url->equals(new Url($this->yandexUrl)));
-        $this->assertFalse($url->equals(new Url($this->googleUrl)));
-    }
-
-    public function testGoogle()
-    {
-        $url = new Url($this->googleUrl);
-
-        $this->assertEquals('https', $url->getScheme());
-        $this->assertEquals('google.com', $url->getHostName());
-        $params = [
-            'a' => 'b',
-            'c' => 'd',
-            'lala' => 'value'
-        ];
-        $this->assertEquals($params, $url->getQueryParams());
-        $this->assertNull($url->getQueryParam('key'));
-        $this->assertTrue($url->equals(new Url($this->googleUrl)));
-        $this->assertFalse($url->equals(new Url('https://google.com')));
-        $this->assertFalse($url->equals(new Url(str_replace('80', '443', $this->googleUrl))));
-    }
+    return implode("\n", $questions);
+}
