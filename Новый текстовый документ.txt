@@ -1,3 +1,33 @@
+
+namespace App;
+use Illuminate\Support\Collection;
+
+class DeckOfCards
+{
+    private array $cards;
+
+    public function __construct(array $cardValues)
+    {
+        $this->initializeDeck($cardValues);
+    }
+    
+    private function initializeDeck(array $cardValues): void
+    {
+        $this->cards = [];
+        foreach ($cardValues as $value) {
+            $this->cards = array_merge($this->cards, array_fill(0, 4, $value));
+        }
+    }
+
+    public function getShuffled(): array
+    {
+        shuffle($this->cards);
+        return $this->cards;
+    }
+}
+
+
+
 <?php
 namespace App;
 use Illuminate\Support\Collection;
