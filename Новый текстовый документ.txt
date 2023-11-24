@@ -1,192 +1,4 @@
 <?php
-namespace App\Dates;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
-use Illuminate\Support\Collection;
-
-function buildRange(array $data, string $begin, string $end): array {
-    $period = CarbonPeriod::create($begin, $end);
-
-    $data = collect($data)->keyBy(function ($item) {
-        return Carbon::createFromFormat('d.m.Y', $item['date'])->format('Y-m-d');
-    });
-
-    $result = [];
-    foreach ($period as $currentDate) {
-        $dateStr = $currentDate->format('Y-m-d');
-        $result[] = [
-            'value' => $data->has($dateStr) ? $data[$dateStr]['value'] : 0,
-            'date' => $currentDate->format('d.m.Y')
-        ];
-    }
-
-    return $result;
-}
-
-
-
-namespace App;
-use Illuminate\Support\Collection;
-
-class DeckOfCards
-{
-    private array $cards;
-
-    public function __construct(array $cardValues)
-    {
-        $this->initializeDeck($cardValues);
-    }
-    
-    private function initializeDeck(array $cardValues): void
-    {
-        $this->cards = [];
-        foreach ($cardValues as $value) {
-            $this->cards = array_merge($this->cards, array_fill(0, 4, $value));
-        }
-    }
-
-    public function getShuffled(): array
-    {
-        shuffle($this->cards);
-        return $this->cards;
-    }
-}
-
-
-
-<?php
-namespace App;
-use Illuminate\Support\Collection;
-
-class DeckOfCards
-{
-    private Collection $cards;
-
-    public function __construct(array $cardValues)
-    {
-        $this->initializeDeck($cardValues);
-        
-    }
-    
-    public function initializeDeck(array $cardValues)
-    {
-        $this->cards = collect($cardValues)
-            ->flatMap(function ($value): array {
-                return array_fill(0, 4, $value); 
-            });
-    }
-
-    public function getShuffled(): array
-    {
-        return $this->cards->shuffle()->all();
-    }
-}
-
-
-<?php
-namespace App\Normalizer;
-use Illuminate\Support\Collection;
-
-function normalize(array $raw): array {
-    return collect($raw)
-        ->map(function ($item) {
-            return [
-                'name' => strtolower(trim($item['name'])),
-                'country' => strtolower(trim($item['country']))
-            ];
-        })
-        ->groupBy('country')
-        ->map(function ($item) {
-            return $item->pluck('name')
-                        ->unique()
-                        ->sort()
-                        ->values();
-        })
-        ->sortKeys()
-        ->toArray();
-}
-
-
-<?php
-namespace App;
-use Carbon\Carbon;
-
-class Booking
-{
-    private $bookedDates = [];
-
-    public function book(string $startDate, string $endDate): bool
-    {
-        $start =  new Carbon($startDate);
-        $end = new Carbon($endDate);
-
-        if ($start >= $end) {
-            return false;
-        }
-        
-        // доступна ли бронь
-        foreach ($this->bookedDates as $dates) {
-            $isIntersected = $start < $dates['end'] && $end > $dates['start'];
-            if ($isIntersected) {
-                return false;
-            }
-        }
-
-        $this->bookedDates[] = ['start' => $start, 'end' => $end];
-        return true;
-    }
-}
-
-
-<?php
-namespace App\Normalizer;
-use function Symfony\Component\String\s;
-
-function getQuestions(string $text): string
-{
-    $lines = explode("\n", $text);
-    $questions = [];
-
-    foreach ($lines as $line) {
-        $trimmedLine = s($line)->trim();
-        if ($trimmedLine->endsWith('?')) {
-            $questions[] = $trimmedLine->toString();
-        }
-    }
-
-    return implode("\n", $questions);
-}
-
-
-<?php
-namespace App\Dates;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
-use Illuminate\Support\Collection;
-
-function buildRange(array $data, string $begin, string $end): array {
-    $period = CarbonPeriod::create($begin, $end);
-
-    $data = collect($data)->keyBy(function ($item) {
-        return Carbon::createFromFormat('d.m.Y', $item['date'])->format('Y-m-d');
-    });
-
-    $result = [];
-    foreach ($period as $currentDate) {
-        $dateStr = $currentDate->format('Y-m-d');
-        $result[] = [
-            'value' => $data->has($dateStr) ? $data[$dateStr]['value'] : 0,
-            'date' => $currentDate->format('d.m.Y')
-        ];
-    }
-
-    return $result;
-}
-
-
-
-
-<?php
 namespace App;
 
 use App\ObjInterface;
@@ -233,16 +45,6 @@ class Obj implements ObjInterface, ArrayAccess
     }
 }
 
-<?php
-
-namespace App;
-
-interface ObjInterface
-{
-    public function __get($key);
-    public function __set($key, $value);
-}
-
 
 <?php
 namespace App\LinkedList;
@@ -261,26 +63,26 @@ function reverse($node)
 }
 
 
+
 <?php
 
-namespace App;
+namespace App\HTML;
 
-class Node
-{
-    public function __construct($value, Node $node = null)
-    {
-        $this->next = $node;
-        $this->value = $value;
-    }
+use Tightenco\Collect;
 
-    public function getNext()
-    {
-        return $this->next;
-    }
+function getLinks(array $tags): array {
+    $mapping = [
+        'a' =>
+            fn ($tag) => $tag['href'],
+        'link' =>
+            fn ($tag) => $tag['href'],
+        'img' =>
+            fn ($tag) => $tag['src'],
+    ];
 
-    public function getValue()
-    {
-        return $this->value;
-    }
+    return collect($tags)
+        ->filter(fn ($tag) => in_array($tag['name'], array_keys($mapping)))
+        ->map(fn ($tag) => $mapping[$tag['name']]($tag))
+        ->values()
+        ->all();
 }
-
