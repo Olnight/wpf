@@ -1,3 +1,25 @@
+
+<?php
+namespace App\HTML;
+use Tightenco\Collect;
+
+function stringify(array $tag): ?string {
+    $tagContent = '<' . tagPart($tag) . '>';
+    if ($tag['tagType'] === 'pair') {
+        $tagContent .= $tag['body'] . '</' . $tag['name'] . '>';
+    }
+    return $tagContent;
+}
+
+function tagPart(array $tag): string {
+    $exceptedAttributes = ['name', 'tagType', 'body'];
+
+    return trim($tag['name'] . ' ' . collect($tag)
+                ->except($exceptedAttributes)
+                ->implode(fn ($value, $key) => $key . '="' . $value . '"', ' '));
+}
+
+
 <?php
 namespace App\HTML;
 use Tightenco\Collect;
