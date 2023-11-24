@@ -1,88 +1,52 @@
 <?php
-namespace App;
-
-use App\ObjInterface;
-use ArrayAccess;
-
-class Obj implements ObjInterface, ArrayAccess
-{
-    private array $object;
-
-    public function __construct($array)
-    {
-        foreach ($array as $key => $value) {
-            !is_array($value) ? $this->object[$key] = $value : $this->object[$key] = new Obj($value);
-        }
-    }
-    public function __get($key)
-    {
-        return $this->object[$key] ?? null;
-    }
-
-    public function __set($key, $value)
-    {
-        $this->object[$key] = $value;
-    }
-
-    public function offsetExists(mixed $key): bool
-    {
-        return isset($this->object[$key]);
-    }
-
-    public function offsetGet(mixed $key): mixed
-    {
-        return isset($this->object[$key]) ? $this->object[$key] : null;
-    }
-
-    public function offsetSet(mixed $key, mixed $value): void
-    {
-        $this->object[$key] = $value;
-    }
-
-    public function offsetUnset(mixed $key): void
-    {
-        unset($this->object[$key]);
-    }
-}
-
-
-<?php
-namespace App\LinkedList;
-
-use App\Node;
-function reverse($node)
-{
-    $reversedList = new Node($node->getValue());
-    $current = $node -> getNext();
-
-    while ($current) {
-        $reversedList = new Node($current->getValue(), $reversedList);
-        $current = $current->getNext();
-    }
-    return $reversedList;
-}
-
-
-
-<?php
-
 namespace App\HTML;
-
 use Tightenco\Collect;
 
-function getLinks(array $tags): array {
-    $mapping = [
-        'a' =>
-            fn ($tag) => $tag['href'],
-        'link' =>
-            fn ($tag) => $tag['href'],
-        'img' =>
-            fn ($tag) => $tag['src'],
+function stringify(array $tag): ?string {
+    switch ($tag['tagType']) {
+        case 'single':
+            return '<' . tagPart($tag) . '>';
+        case 'pair':
+            return '<' . tagPart($tag) . '>' . $tag['body'] . '</' . $tag['name'] . '>';
+        default:
+            return null;
+    }
+}
+
+function tagPart(array $tag): string {
+    $exceptedTags = [
+        'single' => ['name', 'tagType'],
+        'pair' => ['name', 'tagType', 'body']
     ];
 
-    return collect($tags)
-        ->filter(fn ($tag) => in_array($tag['name'], array_keys($mapping)))
-        ->map(fn ($tag) => $mapping[$tag['name']]($tag))
-        ->values()
-        ->all();
+    return trim($tag['name'] . ' ' . collect($tag)
+                ->except($exceptedTags[$tag['tagType']])
+                ->implode(fn ($value, $key) => $key . '=' . '"' . $value . '"', ' '));
 }
+
+
+<?php
+namespace App;
+class DatabaseConfigLoader {
+    private string $path;
+    public function __construct(string $path) {
+        $this->path = $path;
+    }
+
+    public function load(string $env): array {
+        $filename = "{$this->path}/database.{$env}.json";
+        $raw = file_get_contents($filename);
+        $config = json_decode($raw, associative: true);
+
+        if (isset($config['extend'])) {
+            $config = array_merge($this->load($config['extend']), $config);
+            unset($config['extend']);
+        }
+
+        return $config;
+    }
+}
+
+
+
+
