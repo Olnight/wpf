@@ -1,4 +1,30 @@
 <?php
+namespace App\HTML;
+use Tightenco\Collect;
+
+function stringify(array $tag): ?string {
+    $tagContent = '<' . tagPart($tag) . '>';
+    switch ($tag['tagType']) {
+        case 'pair':
+            $tagContent .= $tag['body'] . '</' . $tag['name'] . '>';
+            break;
+        // Здесь можно добавить другие случаи, если это необходимо
+    }
+    return $tagContent;
+}
+
+function tagPart(array $tag): string {
+    $exceptedAttributes = ['name', 'tagType', 'body'];
+
+    return trim($tag['name'] . ' ' . collect($tag)
+                ->except($exceptedAttributes)
+                ->implode(fn ($value, $key) => $key . '="' . $value . '"', ' '));
+}
+
+
+
+
+<?php
 
 namespace App\KeyValueFunctions;
 function swapKeyValue($databaseObject): void {
