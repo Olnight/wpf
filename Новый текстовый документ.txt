@@ -1,113 +1,53 @@
 <?php
-namespace App\HTML;
-use Tightenco\Collect;
 
-function stringify(array $tag): ?string {
-    $tagContent = '<' . tagPart($tag) . '>';
-    switch ($tag['tagType']) {
-        case 'pair':
-            $tagContent .= $tag['body'] . '</' . $tag['name'] . '>';
-            break;
-        // Здесь можно добавить другие случаи, если это необходимо
-    }
-    return $tagContent;
-}
-
-function tagPart(array $tag): string {
-    $exceptedAttributes = ['name', 'tagType', 'body'];
-
-    return trim($tag['name'] . ' ' . collect($tag)
-                ->except($exceptedAttributes)
-                ->implode(fn ($value, $key) => $key . '="' . $value . '"', ' '));
-}
-
-
-
-
-<?php
-
-namespace App\KeyValueFunctions;
-function swapKeyValue($databaseObject): void {
-    $databaseObjectAsArray = array_flip($databaseObject->toArray());
-
-    foreach ($databaseObjectAsArray as $key => $value) {
-        $databaseObject->set($key, $value);
-
-        if ($databaseObject->get($value) == $key) {
-            $databaseObject->unset($value);
-        }
-    }
-}
-<?php
-namespace App\HTML;
-use Tightenco\Collect;
-
-function stringify(array $tag): ?string {
-    $tagContent = '<' . tagPart($tag) . '>';
-    if ($tag['tagType'] === 'pair') {
-        $tagContent .= $tag['body'] . '</' . $tag['name'] . '>';
-    }
-    return $tagContent;
-}
-
-function tagPart(array $tag): string {
-    $exceptedAttributes = ['name', 'tagType', 'body'];
-
-    return trim($tag['name'] . ' ' . collect($tag)
-                ->except($exceptedAttributes)
-                ->implode(fn ($value, $key) => $key . '="' . $value . '"', ' '));
-}
-
-
-<?php
-namespace App\HTML;
-use Tightenco\Collect;
-
-function stringify(array $tag): ?string {
-    switch ($tag['tagType']) {
-        case 'single':
-            return '<' . tagPart($tag) . '>';
-        case 'pair':
-            return '<' . tagPart($tag) . '>' . $tag['body'] . '</' . $tag['name'] . '>';
-        default:
-            return null;
-    }
-}
-
-function tagPart(array $tag): string {
-    $exceptedTags = [
-        'single' => ['name', 'tagType'],
-        'pair' => ['name', 'tagType', 'body']
-    ];
-
-    return trim($tag['name'] . ' ' . collect($tag)
-                ->except($exceptedTags[$tag['tagType']])
-                ->implode(fn ($value, $key) => $key . '=' . '"' . $value . '"', ' '));
-}
-
-
-<?php
 namespace App;
-class DatabaseConfigLoader {
-    private string $path;
-    public function __construct(string $path) {
-        $this->path = $path;
+class FakeSubscription extends Subscription
+{
+    private $user;
+
+    public function __construct($user)
+    {
+        parent::__construct('');
+        $this->user = $user;
     }
 
-    public function load(string $env): array {
-        $filename = "{$this->path}/database.{$env}.json";
-        $raw = file_get_contents($filename);
-        $config = json_decode($raw, associative: true);
+    public function hasProfessionalAccess()
+    {
+        return $this->user->isAdmin();
+    }
 
-        if (isset($config['extend'])) {
-            $config = array_merge($this->load($config['extend']), $config);
-            unset($config['extend']);
-        }
-
-        return $config;
+    public function hasPremiumAccess()
+    {
+        return $this->user->isAdmin();
     }
 }
 
+<?php
 
+namespace App;
 
+class User
+{
+    private $currentSubscription;
+    private $email;
 
+    public function __construct($email, $currentSubscription = null)
+    {
+        $this->email = $email;
+        if ($currentSubscription === null) {
+            $this->currentSubscription = new FakeSubscription($this);
+        } else {
+            $this->currentSubscription = $currentSubscription;
+        }
+    }
+
+    public function getCurrentSubscription()
+    {
+        return $this->currentSubscription;
+    }
+
+    public function isAdmin()
+    {
+        return $this->email === 'rakhim@ht.io';
+    }
+}
