@@ -1,53 +1,153 @@
 <?php
 
 namespace App;
-class FakeSubscription extends Subscription
+
+class HTMLElement
 {
-    private $user;
+    private $attributes = [];
 
-    public function __construct($user)
+    public function __construct($attributes = [])
     {
-        parent::__construct('');
-        $this->user = $user;
+        $this->attributes = $attributes;
     }
 
-    public function hasProfessionalAccess()
+    protected function stringifyAttributes()
     {
-        return $this->user->isAdmin();
-    }
-
-    public function hasPremiumAccess()
-    {
-        return $this->user->isAdmin();
+        return implode(' ', array_map(function ($key, $value) {
+            return "$key=\"$value\"";
+        }, array_keys($this->attributes), $this->attributes));
     }
 }
+
+
 
 <?php
 
 namespace App;
 
-class User
+class HTMLHrElement extends HTMLElement
 {
-    private $currentSubscription;
-    private $email;
-
-    public function __construct($email, $currentSubscription = null)
+    public function __toString()
     {
-        $this->email = $email;
-        if ($currentSubscription === null) {
-            $this->currentSubscription = new FakeSubscription($this);
+        $attributes = $this->stringifyAttributes();
+        return "<hr" . ($attributes ? ' ' : '') . $attributes . ">";
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<?php
+
+namespace App;
+
+class HTMLDivElement extends HTMLElement
+{
+}
+
+
+<?php
+
+namespace App;
+
+class HTMLElement
+{
+    private $attributes = [];
+
+    public function __construct($attributes = [])
+    {
+        $this->attributes = $attributes;
+    }
+
+    public function addClass(string $className): void
+    {
+        $classes = $this->getClassesAsArray();
+        if (!in_array($className, $classes)) {
+            $classes[] = $className;
+        }
+        $this->attributes['class'] = $this->classesArrayToString($classes);
+    }
+
+    public function removeClass(string $className): void
+    {
+        $classes = $this->getClassesAsArray();
+        $this->attributes['class'] = $this->classesArrayToString(array_filter($classes, function($class) use ($className) {
+            return $class !== $className;
+        }));
+    }
+
+    public function toggleClass(string $className): void
+    {
+        $classes = $this->getClassesAsArray();
+        if (in_array($className, $classes)) {
+            $this->removeClass($className);
         } else {
-            $this->currentSubscription = $currentSubscription;
+            $this->addClass($className);
         }
     }
 
-    public function getCurrentSubscription()
+    public function getAttribute(string $attrName): ?string
     {
-        return $this->currentSubscription;
+        return $this->attributes[$attrName] ?? null;
     }
 
-    public function isAdmin()
+    private function getClassesAsArray(): array
     {
-        return $this->email === 'rakhim@ht.io';
+        if (empty($this->attributes['class'])) {
+            return [];
+        }
+        return explode(' ', $this->attributes['class']);
+    }
+
+    private function classesArrayToString(array $classes): string
+    {
+        return implode(' ', $classes);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<?php
+
+namespace App;
+
+class Base
+{
+    public function isInstanceOf(string $className): bool
+    {
+        $currentClass = get_class($this);
+
+        if ($currentClass === $className) {
+            return true;
+        }
+
+        $parents = class_parents($this);
+        return in_array($className, $parents, true);
     }
 }
